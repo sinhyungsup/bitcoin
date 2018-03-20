@@ -176,6 +176,9 @@ bool AppInit(int argc, char* argv[])
     return fRet;
 }
 
+/**
+ * 시작점 daem0n
+ */
 int main(int argc, char* argv[])
 {
     SetupEnvironment();
