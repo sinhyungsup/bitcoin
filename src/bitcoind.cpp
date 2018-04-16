@@ -88,6 +88,7 @@ bool AppInit(int argc, char* argv[])
 
     try
     {
+        //-datadir 옵션이 있을 경우 지정경로, 아닐 경우 플랫폼 별 기본경로 생성
         if (!fs::is_directory(GetDataDir(false)))
         {
             fprintf(stderr, "Error: Specified data directory \"%s\" does not exist.\n", gArgs.GetArg("-datadir", "").c_str());
@@ -95,6 +96,7 @@ bool AppInit(int argc, char* argv[])
         }
         try
         {
+            //example/bitcoin.conf
             gArgs.ReadConfigFile(gArgs.GetArg("-conf", BITCOIN_CONF_FILENAME));
         } catch (const std::exception& e) {
             fprintf(stderr,"Error reading configuration file: %s\n", e.what());
@@ -102,6 +104,8 @@ bool AppInit(int argc, char* argv[])
         }
         // Check for -testnet or -regtest parameter (Params() calls are only valid after this clause)
         try {
+            //옵션중에 regtest, testnet 여부를 판단, 없을 경우 mainnet, 둘다있음오류(regtest,testnet)
+            //globalChainBaseParams 값에 객채 생성(CBaseMainParams, CBaseTest,CBaseRegTest)
             SelectParams(ChainNameFromCommandLine());
         } catch (const std::exception& e) {
             fprintf(stderr, "Error: %s\n", e.what());
@@ -119,7 +123,12 @@ bool AppInit(int argc, char* argv[])
         // -server defaults to true for bitcoind but not for the GUI so do this here
         gArgs.SoftSetBoolArg("-server", true);
         // Set this early so that parameter interactions go to console
+        /**
+         * 콘솔에서 입력받은 log관련 파라미터 설정을 채워넣음.
+           -printtoconsole,-logtimestamps,-logtimemicros,-logips
+         */
         InitLogging();
+        //
         InitParameterInteraction();
         if (!AppInitBasicSetup())
         {

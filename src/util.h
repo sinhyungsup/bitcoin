@@ -320,6 +320,9 @@ template <typename Callable> void TraceThread(const char* name,  Callable func)
     try
     {
         LogPrintf("%s thread start\n", name);
+        /**
+         * func_base 클래스 상속.
+         */
         func();
         LogPrintf("%s thread exit\n", name);
     }

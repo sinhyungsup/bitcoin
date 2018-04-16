@@ -197,11 +197,16 @@ fs::path GetDebugLogPath()
 
 bool OpenDebugLog()
 {
+    /**
+     * oost::call_once() 는 연결된 함수포인터를보고 단 한번만 수행한다. 
+     * 두번째로 받는 파라미터는 boost::once_flag 형이다. thread safe 하다.
+     * mutexDebugLog 뮤텍스 생성
+     */ 
     boost::call_once(&DebugPrintInit, debugPrintInitFlag);
     boost::mutex::scoped_lock scoped_lock(*mutexDebugLog);
 
     assert(fileout == nullptr);
-    assert(vMsgsBeforeOpenLog);
+    assert(vMsgsBeforeOpenLog); //new std::list<std::string>;
     fs::path pathDebug = GetDebugLogPath();
 
     fileout = fsbridge::fopen(pathDebug, "a");
@@ -691,6 +696,7 @@ fs::path GetPidFile()
     return pathPidFile;
 }
 
+//비트코인 경로(-dirpath 옵션이 없으면 기본 경로)에 파일(bitcoin_pid_filename) 생성하고 pid를 씀.
 void CreatePidFile(const fs::path &path, pid_t pid)
 {
     FILE* file = fsbridge::fopen(path, "w");
@@ -918,7 +924,15 @@ void SetupEnvironment()
     // in multithreading environments, it is set explicitly by the main thread.
     // A dummy locale is used to extract the internal default locale, used by
     // fs::path, which is then used to explicitly imbue the path.
+
+    //std::locale::classic -> Returns a reference to the "C" locale.
     std::locale loc = fs::path::imbue(std::locale::classic());
+
+    /**
+     * static std::locale imbue(const std::locale& loc);
+        Effects: Stores loc as the default locale for all objects of type path.
+        Returns: The previous default locale for all objects of type path.
+     */ 
     fs::path::imbue(loc);
 }
 
