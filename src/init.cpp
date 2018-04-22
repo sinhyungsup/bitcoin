@@ -714,10 +714,23 @@ bool InitSanityCheck(void)
 
 bool AppInitServers()
 {
+    /**
+     * g_rpcSignals->OnRPCStarted,OnRPCStopped 연결
+     * OnRPCStarted :  RPCNotifyBlockChange(bool ibd, const CBlockIndex * pindex) 함수랑 연결됨.
+     *                 이함수는 latestblock(CBlockUpdate) 블럭에 pindex 의 해시와 높이를 업데이트함.
+     * OnStopped : 위에 연결된 함수를 disconnected 처리하고 마지막블럭을 nullptr로 채움
+     */ 
     RPCServer::OnStarted(&OnRPCStarted);
     RPCServer::OnStopped(&OnRPCStopped);
+
+    /**
+     * 
+     */ 
     if (!InitHTTPServer())
         return false;
+    /**
+     * 위에서 등록한 OnRPCStarted 실행
+     */ 
     if (!StartRPC())
         return false;
     if (!StartHTTPRPC())
@@ -1314,6 +1327,10 @@ bool AppInitMain()
      * be disabled when initialisation is finished.
      */
     if (gArgs.GetBoolArg("-server", false)) {
+        /**
+         * INitMessage(signal2)에 SetRPCWarmupStatus 함수 연결
+         * SetRPCWarmupStatus 서버상태를 저장
+         */
         uiInterface.InitMessage.connect(SetRPCWarmupStatus);
         if (!AppInitServers())
             return InitError(_("Unable to start HTTP server. See debug log for details."));

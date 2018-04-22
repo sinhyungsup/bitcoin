@@ -348,6 +348,10 @@ static void libevent_log_cb(int severity, const char *msg)
 
 bool InitHTTPServer()
 {
+    /**
+     * 허용 가능한 서브넷을 구성, 기본적으로 로컬을 넣고 rpcallowip로 받은
+     * 서브넷들을 추가함.
+     */
     if (!InitHTTPAllowList())
         return false;
 
@@ -359,6 +363,8 @@ bool InitHTTPServer()
     }
 
     // Redirect libevent's logging to our own log
+    //http://wiki.pchero21.com/wiki/Libevent_R1:_Setting_up_the_Libevent_library 함수설명
+    //설정된 로그를 기록할 때 libevent_log_cb 함수 실행.
     event_set_log_callback(&libevent_log_cb);
     // Update libevent's log handling. Returns false if our version of
     // libevent doesn't support debug logging, in which case we should
@@ -370,6 +376,16 @@ bool InitHTTPServer()
 #ifdef WIN32
     evthread_use_windows_threads();
 #else
+/**
+ * 이미 알고 있드시, 멀티 스레드 환경에서의 데이터 접근은 그리 안전하지가 못하다.
+   Libevent에서는 다음의 세 가지 데이터 방식을 가진다.
+   싱글 스레드 데이터 방식 : 멀티 스레드 환경에서는 절대로 안전하지 않다.
+   optionally-locked 데이터 방식 : 데이터에 접근하고 나올때마다 Lock 설정을 해주어야 한다.
+   always-locked : 항상 lock 방식으로 동작되며 멀티 스레드 환경에서 안전하다.
+   Libevent 에서 Locking 을 사용하고자 한다면, 어떤 방식의 Locking 을 사용하고자 하는지 설정해줘야 한다. 
+   반드시 Libevent 최초 설정시 이를 지정해주어야 한다. 그래야만 지정된 방식으로 Libevent 데이터 방식으로 메모리가 관리될 수 있기 때문이다. 
+   또한 pthread 라이브러리 혹은 Windows threading 방식을 사용한다면, 이를 위해 미리 지정되어 있는 방식을 사용할 수 있다.
+ */ 
     evthread_use_pthreads();
 #endif
 
