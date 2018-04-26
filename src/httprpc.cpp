@@ -122,6 +122,10 @@ static bool multiUserAuthorized(std::string strUserPass)
     return false;
 }
 
+/**
+ * param
+ * authHeader.second, jreq.authUser
+ */ 
 static bool RPCAuthorized(const std::string& strAuth, std::string& strAuthUsernameOut)
 {
     if (strRPCUserColonPass.empty()) // Belt-and-suspenders measure if InitRPCAuthentication was not called
@@ -139,6 +143,9 @@ static bool RPCAuthorized(const std::string& strAuth, std::string& strAuthUserna
     if (TimingResistantEqual(strUserPass, strRPCUserColonPass)) {
         return true;
     }
+    /**
+     * -rpcauth 정보의 id:password 정보 식별
+     */
     return multiUserAuthorized(strUserPass);
 }
 
@@ -158,6 +165,11 @@ static bool HTTPReq_JSONRPC(HTTPRequest* req, const std::string &)
     }
 
     JSONRPCRequest jreq;
+    /**
+     * InitRPCAuthentication 만든 인증정보 strRPCUserColonPass 를 파싱하여 포맷검사
+       빈값이거나, authStr 값이 Basic(oauth방식인듯?) 이 아니면 false       
+       두번째 authUser 값은 outParameter형태로써 사용자정보를 채워줌.
+     */ 
     if (!RPCAuthorized(authHeader.second, jreq.authUser)) {
         LogPrintf("ThreadRPCServer incorrect password attempt from %s\n", req->GetPeer().ToString());
 
@@ -185,9 +197,11 @@ static bool HTTPReq_JSONRPC(HTTPRequest* req, const std::string &)
         if (valRequest.isObject()) {
             jreq.parse(valRequest);
 
+            //rpc 테이블에서 jreq(CCommon) 를 찾아 실행.
             UniValue result = tableRPC.execute(jreq);
 
             // Send reply
+            //UniValue 값에 result,id,error 값을 채워서 리턴.
             strReply = JSONRPCReply(result, NullUniValue, jreq.id);
 
         // array of requests
@@ -229,11 +243,25 @@ static bool InitRPCAuthentication()
 bool StartHTTPRPC()
 {
     LogPrint(BCLog::RPC, "Starting HTTP RPC server\n");
+    /**
+     * strRPCUserColonPass = {-rpcuser}:{-rpcpassword} 형태로 저장함.
+     * -rpcpassword가 공백일 경우 __cookie__:{randomString}(32) 형태로 생성
+     * .cookie 쿠키파일까지 생성
+     */ 
     if (!InitRPCAuthentication())
         return false;
 
+    /**
+     * (httpserver 멤버변수)-pathHanders(vector)에 
+     * HTTPReq_JSONRPC 함수 (HTTPPathHandler) 삽입
+     * HTTPReq_JSONRPC : request 정상요청인지 판단 req는 무조건 post만 허용
+     * 인증정보가 있는지 판단, 사전 검사후 jreq 에서 RPCTable에 선언된 RPC를 찾아서 실행, 그후 결과와 헤더값을 채워줌
+     */ 
     RegisterHTTPHandler("/", true, HTTPReq_JSONRPC);
 #ifdef ENABLE_WALLET
+    /**
+     * wallet 일 경우도 위 httpHandler와 동일.
+     */
     // ifdef can be removed once we switch to better endpoint support and API versioning
     RegisterHTTPHandler("/wallet/", false, HTTPReq_JSONRPC);
 #endif

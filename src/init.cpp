@@ -729,12 +729,20 @@ bool AppInitServers()
     if (!InitHTTPServer())
         return false;
     /**
-     * 위에서 등록한 OnRPCStarted 실행
+     * fRPCRunning = true 로 변경 및 위에서 등록한 OnRPCStarted 실행
      */ 
     if (!StartRPC())
         return false;
+    /**
+     * 1.유저정보(-rpcuser:-rpcpassword) 를 생성하고 쿠키파일 생성
+       2.HTTPReq_JSONRPC 함수를 등록(httpserver 멤버변수(vector)-삽입)
+       3.HTTPReq_JSONRPC 는 http req를 받아 인증정보 및 형태 검증하고 RPCtable 에 매칭되는 rpc를 호출함.
+     */ 
     if (!StartHTTPRPC())
         return false;
+    /**
+     * HTTPRPC 에서 등록한 HTTPReq_JSONRPC 함수를 사용하여 rest api 도 등록.
+     */ 
     if (gArgs.GetBoolArg("-rest", DEFAULT_REST_ENABLE) && !StartREST())
         return false;
     if (!StartHTTPServer())
